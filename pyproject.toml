@@ -23,13 +23,13 @@ dependencies = [
 
 [project.scripts]
 # This defines the command 'run-bot'
-run-bot = "bot-launcher.main:main"
+run-bot = "bot_launcher.main:main"
 #       = "<package>.<module>:<function>"
 
 
 [tool.poetry]
 packages = [
-    { include = "bot-launcher", from = "src" }
+    { include = "bot_launcher", from = "src" }
 ]
 
 
