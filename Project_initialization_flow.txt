@@ -1,0 +1,202 @@
+Microsoft Windows [Version 10.0.22631.6491]
+(c) Microsoft Corporation. All rights reserved.
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry init
+
+This command will guide you through creating your pyproject.toml config.
+
+Package name [bot-launcher]:  bot-launcher
+Version [0.1.0]:  0.1.0
+Description []:  Master bot to launch other bot containers
+Author [A-7985 <hari.ambati@ibsplc.com>, n to skip]:  harikrishna2005@gmail.com
+License []:
+Compatible Python versions [>=3.12]:  ^3.12
+
+Would you like to define your main dependencies interactively? (yes/no) [yes] no
+Would you like to define your development dependencies interactively? (yes/no) [yes] no
+Generated file
+
+[project]
+name = "bot-launcher"
+version = "0.1.0"
+description = "Master bot to launch other bot containers"
+authors = [
+    {name = "harikrishna2005@gmail.com"}
+]
+readme = "README.md"
+requires-python = "^3.12"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+Do you confirm generation? (yes/no) [yes] yes
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry add "mqtt-connector-lib @ git+https://github.com/harikrishna2005/mqtt_connector_lib.git@redis_connector_develop"
+Creating virtualenv bot-launcher in D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.venv
+
+Updating dependencies
+Resolving dependencies... (0.4s)D:\Applns\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'github.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+Resolving dependencies... (1.2s)D:\Applns\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'github.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+Resolving dependencies... (2.2s)D:\Applns\Python312\Lib\site-packages\urllib3\connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'github.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+  warnings.warn(
+Resolving dependencies... (3.7s)
+
+Package operations: 8 installs, 0 updates, 0 removals
+
+  - Installing hiredis (3.3.0)
+  - Installing typing-extensions (4.15.0)
+  - Installing dependency-injector (4.48.3)
+  - Installing gmqtt (0.7.0)
+  - Installing prometheus-client (0.19.0)
+  - Installing psutil (5.9.8)
+  - Installing redis (7.1.0)
+  - Installing mqtt-connector-lib (0.0.1 f3dd9cb)
+
+Writing lock file
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>mkdir src\bot-launcher
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>mkdir tests
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>type nul > src\bot-launcher\__init__.py
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>type nul > tests\__init__.py
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>echo # Rebalancing Bot > README.md
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry add docker
+Using version ^7.1.0 for docker
+
+Updating dependencies
+Resolving dependencies... (1.3s)
+
+Package operations: 7 installs, 0 updates, 0 removals
+
+  - Installing certifi (2026.1.4)
+  - Installing charset-normalizer (3.4.4)
+  - Installing idna (3.11)
+  - Installing urllib3 (2.6.3)
+  - Installing pywin32 (311)
+  - Installing requests (2.32.5)
+  - Installing docker (7.1.0)
+
+Writing lock file
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry lock
+Resolving dependencies... (0.1s)
+
+Writing lock file
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry install --all-extras
+Installing dependencies from lock file
+
+No dependencies to install or update
+
+Installing the current project: bot-launcher (0.1.0)
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry run python -c "import rebalancing_bot; print('Project installed successfully!')"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'rebalancing_bot'
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry run python -c "import bot-launcher; print('Project installed successfully!')"
+  File "<string>", line 1
+    import bot-launcher; print('Project installed successfully!')
+              ^
+SyntaxError: invalid syntax
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry run python -c "import bot-launcher; print('Project installed successfully!')"
+  File "<string>", line 1
+    import bot-launcher; print('Project installed successfully!')
+              ^
+SyntaxError: invalid syntax
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>poetry run python -c "import bot_launcher; print('Project installed successfully!')"
+Project installed successfully!
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>mkdir .github
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>mkdir .github/workflows
+The syntax of the command is incorrect.
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>cd .github
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.github>mkdir workflows
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.github>cd workflows
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.github\workflows>type nul > .github/workflows/ci.yml
+The system cannot find the path specified.
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.github\workflows>cd..
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher\.github>cd..
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>type nul > .github/workflows/ci.yml
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>type nul > Dockerfile
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git init and push
+usage: git init [-q | --quiet] [--bare] [--template=<template-directory>]
+         [--separate-git-dir <git-dir>] [--object-format=<format>]
+         [--ref-format=<format>]
+         [-b <branch-name> | --initial-branch=<branch-name>]
+         [--shared[=<permissions>]] [<directory>]
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git init
+Initialized empty Git repository in D:/A-7985/Hari/Personal/Python/Pycharm_projects/bot-launcher/.git/
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git add .
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git status
+On branch master
+
+No commits yet
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+        new file:   .github/workflows/ci.yml
+        new file:   .gitignore
+        new file:   DockerFile
+        new file:   README.md
+        new file:   poetry.lock
+        new file:   pyproject.toml
+        new file:   src/bot_launcher/__init__.py
+        new file:   tests/__init__.py
+
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git commit -m "Initial main commit including CI work flow"
+[master (root-commit) b652cef] Initial main commit including CI work flow
+ 8 files changed, 931 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .gitignore
+ create mode 100644 DockerFile
+ create mode 100644 README.md
+ create mode 100644 poetry.lock
+ create mode 100644 pyproject.toml
+ create mode 100644 src/bot_launcher/__init__.py
+ create mode 100644 tests/__init__.py
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git remote add origin https://github.com/harikrishna2005/bot-launcher.git
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git branch -M main
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>git push -u origin main
+Enumerating objects: 13, done.
+Counting objects: 100% (13/13), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (13/13), 20.75 KiB | 3.46 MiB/s, done.
+Total 13 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+To https://github.com/harikrishna2005/bot-launcher.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+
+D:\A-7985\Hari\Personal\Python\Pycharm_projects\bot-launcher>
