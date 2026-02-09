@@ -1,0 +1,50 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+
+[project]
+name = "bot-launcher"
+version = "0.1.0"
+description = "Master bot to launch other bot containers"
+authors = [
+    {name = "harikrishna2005@gmail.com"}
+]
+readme = "README.md"
+requires-python = "^3.12"
+dependencies = [
+    "mqtt-connector-lib @ git+https://github.com/harikrishna2005/mqtt_connector_lib.git@redis_connector_develop",
+    "docker (>=7.1.0,<8.0.0)"
+]
+
+
+
+
+[project.scripts]
+# This defines the command 'run-bot'
+run-bot = "bot-launcher.main:main"
+#       = "<package>.<module>:<function>"
+
+
+[tool.poetry]
+packages = [
+    { include = "bot-launcher", from = "src" }
+]
+
+
+
+
+# In Poetry 2.0, optional dependencies for extras go here
+[tool.poetry.dependencies]
+pytest = { version = "^7.4.0", optional = true }
+pytest-asyncio = { version = "^0.21.0", optional = true }
+pytest-cov = { version = "^4.1.0", optional = true }
+
+
+[tool.poetry.extras]
+test = ["pytest", "pytest-asyncio", "pytest-cov"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
