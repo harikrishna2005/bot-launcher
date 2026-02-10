@@ -26,12 +26,18 @@ dependencies = [
 [project.scripts]
 run-bot = "bot_launcher.main:main"
 run-manager = "bot_launcher.cli:start_server"
+#run-rebalancing = "bots.rebalancing_bot.main:main"
+run-rebalancing = "bots.rebalancing_bot.cli:start_server"
 #       = "<package>.<module>:<function>"
 
 
 [tool.poetry]
 packages = [
-    { include = "bot_launcher", from = "src" }
+    { include = "bot_launcher", from = "src" },
+    { include = "bots", from = "src" },
+    { include = "connectors", from = "src" },
+    { include = "shared", from = "src" }
+
 ]
 
 
