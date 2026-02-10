@@ -5,6 +5,9 @@ import os
 import uvicorn
 # uvicorn src.bot_launcher.app:app --host 127.0.0.1 --port 9501
 
+from bot_launcher import test1_check
+# from bot_launcher.test1_check import get_text_v1
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -23,7 +26,7 @@ class BotLaunchRequest(BaseModel):
 
 @app.get("/status")
 def get_all_bots():
-    return {f"Getting all the bots  "}
+    return {f"Getting all the bots --->  {test1_check.get_text_v1()} "}
     # """List all containers managed by this API"""
     # containers = client.containers.list(all=True)
     # return [
