@@ -56,4 +56,4 @@ COPY --from=builder /app/src ./src
 
 # This will now work because 'rebalancing_bot' is installed in the .venv
 # ENTRYPOINT ["python", "-m", "rebalancing_bot"]
-ENTRYPOINT ["run-bot"]
+# ENTRYPOINT ["run-bot"]
