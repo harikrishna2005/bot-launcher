@@ -4,7 +4,7 @@ services:
     container_name: bot_launcher_manager
     # Start the FastAPI server
     #command: ["uvicorn", "src.manager.app:app", "--host", "0.0.0.0"]
-    command: ["poetry", "run", "run-manager"]
+    command: ["run-manager"]
     ports:
       - "9501:9501"
     volumes:
