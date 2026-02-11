@@ -19,51 +19,59 @@ class DockerExecutionStrategy(ExecutionStrategy):
             raise
 
     def launch_bot(self, bot_name: str, bot_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
-        """Launch a bot as a Docker container."""
-        # Default to latest version if not specified in config
-        version = config.pop("version", "latest") if isinstance(config, dict) else "latest"
-        image = f"ghcr.io/harikrishna2005/rebalancing-trading-bot:{version}"
+        """Launch a bot as a Docker container matching the Compose configuration."""
+        # Use 'develop' as requested in your compose file
+        version = "develop"
+        image = f"ghcr.io/harikrishna2005/bot-launcher:{version}"
 
-        print(f"🐳 Launching {bot_name} as Docker container with image {image}")
+        # Matches the container_name from your compose
+        container_name = f"{bot_name}_container"
+
+        print(f"🐳 Launching {bot_name} with image {image}")
 
         try:
-            # Pull latest if version is 'latest'
-            if version == "latest":
-                print(f"📥 Pulling latest image: {image}")
-                self.client.images.pull(image)
+            # --- THIS REPLICATES pull_policy: always ---
+            # It forces the Docker daemon to check for a newer version of the tag
+            print(f"📥 Pulling latest image: {image}")
+            self.client.images.pull(image)
+
+            # Prepare the BOT_CONFIG environment variable as a JSON string
+            bot_config_json = json.dumps({
+                "bot_name": bot_name,
+                "bot_type": bot_type,
+                "config": config
+            }, indent=2)
 
             container = self.client.containers.run(
                 image=image,
-                name=bot_name,
+                name=container_name,
                 detach=True,
-                command=["python", f"src/bots/{bot_type}/main.py"],
-                environment={"BOT_CONFIG": json.dumps(config)},
-                restart_policy={"Name": "unless-stopped"}
+                # Matches command: ["run-rebalancing"]
+                command=["run-rebalancing"],
+                # Matches ports: ["9501:9501"]
+                ports={'9501/tcp': 9501},
+                # Matches environment: BOT_CONFIG
+                environment={
+                    "BOT_CONFIG": bot_config_json
+                },
+                # Matches networks: my_home_network
+                network="my_home_network",
+                # Matches restart: always
+                restart_policy={"Name": "always"}
             )
 
             return {
-                "error": False,
-                "message": "Bot started successfully",
-                "bot_name": bot_name,
-                "container_id": container.id,
-                "bot_type": bot_type,
-                "image": image
+                "success": True,
+                "container_id": container.short_id,
+                "container_name": container.name,
+                "status": container.status
             }
-
         except APIError as e:
-            return {
-                "error": True,
-                "message": f"Docker API error while launching bot '{bot_name}'",
-                "detail": str(e),
-                "status_code": 500
-            }
+            print(f"❌ Docker API error: {e}")
+            return {"success": False, "error": str(e)}
         except Exception as e:
-            return {
-                "error": True,
-                "message": f"Failed to launch bot '{bot_name}'",
-                "detail": str(e),
-                "status_code": 500
-            }
+            print(f"❌ Unexpected error: {e}")
+            return {"success": False, "error": str(e)}
 
     def stop_bot(self, bot_name: str) -> Dict[str, str]:
         """Stop a running bot container and remove it."""

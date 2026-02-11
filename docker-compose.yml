@@ -1,6 +1,7 @@
 services:
   manager:
     image: ghcr.io/harikrishna2005/bot-launcher:develop
+    pull_policy: always
     container_name: bot_launcher_manager
     networks:
       - my_home_network
