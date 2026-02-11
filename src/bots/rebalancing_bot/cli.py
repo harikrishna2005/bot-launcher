@@ -3,8 +3,10 @@ import uvicorn
 import os
 
 
+# RUNNING_IN_DOCKER = os.path.exists('/var/run/docker.sock')
+# client = docker.from_env() if RUNNING_IN_DOCKER else None
+
 RUNNING_IN_DOCKER = os.path.exists('/var/run/docker.sock')
-client = docker.from_env() if RUNNING_IN_DOCKER else None
 
 def start_server():
     """Entry point for poetry run run-manager"""
