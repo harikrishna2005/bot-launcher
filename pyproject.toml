@@ -26,8 +26,7 @@ dependencies = [
 
 
 
-[project.scripts]
-run-bot = "bot_launcher.main:main"
+[tool.poetry.scripts]
 run-manager = "bot_launcher.cli:start_server"
 #run-rebalancing = "bots.rebalancing_bot.main:main"
 run-rebalancing = "bots.rebalancing_bot.cli:start_server"

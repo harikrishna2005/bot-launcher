@@ -40,16 +40,17 @@ RUN pip install poetry
 COPY . .
 
 # Now, when this runs, it installs dependencies AND your rebalancing_bot
-RUN poetry install --all-extras
+RUN poetry install --all-extras --no-interaction
 
 # --- Stage 2: Runtime ---
 # FROM python:3.12-slim-bookworm AS runtime
 FROM --platform=$TARGETPLATFORM python:3.12-slim-bookworm AS runtime
 WORKDIR /app
 
-# 1. MUST Copy the virtual environment (This contains the 'run-rebalancing' script)
+# 1. Copy the virtual environment (where the scripts live)
 COPY --from=builder /app/.venv /app/.venv
 
+# 2. Add to PATH so "run-rebalancing" is a valid command
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
