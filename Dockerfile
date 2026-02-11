@@ -50,12 +50,13 @@ WORKDIR /app
 # 1. Copy the virtual environment (where the scripts live)
 COPY --from=builder /app/.venv /app/.venv
 
-# 2. Add to PATH so "run-rebalancing" is a valid command
+
+# 2. FIX: Copy everything (Project root + src) so the links aren't broken
+COPY . .
+
+# 3. Add to PATH so "run-rebalancing" is a valid command
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
-
-# 3. FIX: Copy everything (Project root + src) so the links aren't broken
-COPY . .
 
 # This will now work because 'rebalancing_bot' is installed in the .venv
 # ENTRYPOINT ["python", "-m", "rebalancing_bot"]
