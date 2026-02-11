@@ -1,7 +1,6 @@
 import os
 import json
 import subprocess
-import signal
 from typing import Dict, Any
 import psutil
 
@@ -24,12 +23,11 @@ class LocalSubprocessStrategy(ExecutionStrategy):
                 "status_code": 400
             }
 
-        print(f"🛠 Launching {bot_name} via: poetry run run-{bot_type}")
+        # Dynamically builds the command: "run-rebalancing", "run-grid", etc.
+        script_command = f"run-{bot_type}"
+        print(f"🛠 Launching {bot_name} via: poetry run {script_command}")
 
         try:
-            # Dynamically builds the command: "run-rebalancing", "run-grid", etc.
-            script_command = f"run-{bot_type}"
-
             process = subprocess.Popen(
                 ["poetry", "run", script_command],
                 env={
