@@ -34,6 +34,7 @@ run-rebalancing = "bots.rebalancing_bot.cli:start_server"
 
 
 [tool.poetry]
+package-mode = true
 packages = [
     { include = "bot_launcher", from = "src" },
     { include = "bots", from = "src" },
