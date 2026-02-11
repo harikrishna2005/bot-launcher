@@ -6,9 +6,11 @@ from typing import Dict, Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-
+from bot_launcher.api_routers.api import aggregator_router
 
 app = FastAPI(title="Bot Manager API [LOCAL MODE]")
+
+app.include_router(aggregator_router)
 
 # PID Tracking for local processes
 active_processes: Dict[str, int] = {}

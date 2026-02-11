@@ -1,17 +1,15 @@
-import docker
-import json
-import os
-
-import uvicorn
 # uvicorn src.bot_launcher.app:app --host 127.0.0.1 --port 9501
 
-from bot_launcher import test1_check
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
+from bot_launcher.api_routers.api import aggregator_router
 
 app = FastAPI(title="Bot Manager API")
 # client = docker.from_env()
+
+# Include the bot routes
+app.include_router(aggregator_router)
 
 
 
@@ -24,7 +22,7 @@ class BotLaunchRequest(BaseModel):
 
 @app.get("/status")
 def get_all_bots():
-    return {f"Getting all the bots --->  {test1_check.get_text_v1()} "}
+    return {f"Getting all the bots  "}
     # """List all containers managed by this API"""
     # containers = client.containers.list(all=True)
     # return [
