@@ -1,0 +1,58 @@
+bot-launcher_v1/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                      # Multi-arch Docker build pipeline
+├── src/
+│   └── bot_launcher/                   # Main package
+│       ├── __init__.py
+│       ├── app_docker.py               # FastAPI app for Docker environment
+│       ├── app_local.py                # FastAPI app for local development
+│       ├── cli.py                      # CLI entry point (run-manager)
+│       ├── main.py                     # Bot entry point (run-bot)
+│       ├── test1_check.py              # Test utility
+│       ├── test2_check.py              # Test utility
+│       └── __pycache__/                # Python bytecode cache
+│           ├── __init__.cpython-312.pyc
+│           ├── app_local.cpython-312.pyc
+│           ├── cli.cpython-312.pyc
+│           ├── test1_check.cpython-312.pyc
+│           └── test2_check.cpython-312.pyc
+├── tests/
+│   └── __init__.py                     # Test package
+├── docker-compose.yml                  # Docker Compose configuration
+├── Dockerfile                          # Multi-stage Docker build
+├── pyproject.toml                      # Poetry project configuration
+├── poetry.lock                         # Poetry lock file
+├── Project_initialization_flow.txt     # Project documentation
+└── README.md                           # Project README
+
+Key Project Characteristics:-
+Component
+Purpose
+bot_launcher
+Main Python package (installable via Poetry)
+app_docker.py
+Manager API for Docker container orchestration
+app_local.py
+Manager API for local process simulation
+cli.py
+Entry point that detects environment and launches appropriate server
+Entry Points
+run-manager (CLI), run-bot (bot launcher)
+Package Location
+src/bot_launcher (Poetry recognizes via packages config)
+Python Version
+3.12
+Key Dependencies
+FastAPI, Uvicorn, Docker SDK, mqtt-connector-lib
+CI/CD
+GitHub Actions multi-arch build (amd64, arm64)
+
+
+Project Type:-
+This is a manager service that:
+Runs as a FastAPI server
+Launches trading bot containers via Docker API (in Docker)
+Simulates bot containers as separate processes (locally)
+Uses Poetry for package management and absolute imports
+Supports multi-architecture Docker builds
