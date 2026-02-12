@@ -5,165 +5,186 @@ from typing import Dict, Any
 import psutil
 
 from bot_launcher.services.base_strategy import ExecutionStrategy
+from shared.config import bot_env_settings
+from shared.utils.port_utils import get_next_available_port
 
 
 class LocalSubprocessStrategy(ExecutionStrategy):
     """Strategy for launching bots as local subprocesses using Poetry."""
 
     def __init__(self):
-        # PID Tracking for local processes
-        self.active_processes: Dict[str, int] = {}
+        # Tracking for local processes: {bot_name: {"pid": int, "type": str, "port": int}}
+        self.active_processes: Dict[str, Dict[str, Any]] = {}
 
     def launch_bot(self, bot_name: str, bot_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
-        """Launch a bot as a subprocess using Poetry."""
+        """Launch a bot as a subprocess with matching environment injection."""
         if bot_name in self.active_processes:
             return {
-                "error": True,
+                "success": False,
                 "message": f"Bot '{bot_name}' is already active.",
                 "status_code": 400
             }
 
-        # Dynamically builds the command: "run-rebalancing", "run-grid", etc.
+        # 1. Technical Configuration (Matching Docker Strategy)
+        host = bot_env_settings.host
+        internal_port = bot_env_settings.internal_port
+
+        # For local runs, internal and external ports are the same on your host machine
+        external_port = bot_env_settings.external_port or get_next_available_port()
+
+        version = bot_env_settings.version
         script_command = f"run-{bot_type}"
-        print(f"🛠 Launching {bot_name} via: poetry run {script_command}")
+
+        # 2. Prepare BOT_CONFIG (Keep it clean, just trading data)
+        bot_config_json = json.dumps({
+            "bot_name": bot_name,
+            "bot_type": bot_type,
+            "config": config
+        }, indent=2)
+
+        print(f"🛠 Launching {bot_name} locally on port {external_port}")
 
         try:
+            # 3. Environment Injection (Matching Docker Strategy names)
+            process_env = {
+                **os.environ,
+                "BOT_CONFIG": bot_config_json,
+                "APP_HOST": host,
+                "APP_INTERNAL_PORT": str(internal_port),
+                "APP_EXTERNAL_PORT": str(external_port),
+                "APP_VERSION": version,
+                "APP_DOCKER_NETWORK": "local_host",  # Placeholder for consistency
+                "PYTHONUNBUFFERED": "1"
+            }
+
             process = subprocess.Popen(
                 ["poetry", "run", script_command],
-                env={
-                    **os.environ,
-                    "BOT_CONFIG": json.dumps(config),
-                    "PYTHONUNBUFFERED": "1"
-                },
+                env=process_env,
                 start_new_session=True,
-                stdout=None,  # Output goes to your current terminal
+                stdout=None,
                 stderr=None
             )
 
-            self.active_processes[bot_name] = process.pid
+            # Store metadata locally since we don't have Docker Labels
+            self.active_processes[bot_name] = {
+                "pid": process.pid,
+                "bot_type": bot_type,
+                "version": version,
+                "port": external_port
+            }
+
             return {
-                "error": False,
-                "message": "Bot launched successfully",
+                "success": True,
                 "bot_name": bot_name,
                 "pid": process.pid,
-                "bot_type": bot_type
+                "assigned_port": external_port,
+                "status": "running"
             }
 
         except Exception as e:
             return {
-                "error": True,
-                "message": f"Failed to launch bot. Check if '{script_command}' exists in pyproject.toml",
+                "success": False,
+                "message": f"Failed to launch {bot_name}. Check if '{script_command}' exists.",
                 "detail": str(e),
                 "status_code": 500
             }
 
-    def stop_bot(self, bot_name: str) -> Dict[str, str]:
+    def stop_bot(self, bot_name: str) -> Dict[str, Any]:
         """Stop a running bot by terminating its process and all child processes."""
-        pid = self.active_processes.get(bot_name)
+        bot_data = self.active_processes.get(bot_name)
 
-        if not pid:
+        if not bot_data:
             return {
                 "error": True,
-                "message": f"Bot '{bot_name}' not found in active processes.",
+                "message": f"Bot '{bot_name}' not found.",
                 "status_code": 404
             }
 
+        pid = bot_data["pid"]
+
         try:
-            # Use psutil to kill the process and all its children
-            try:
-                parent = psutil.Process(pid)
-                children = parent.children(recursive=True)
+            parent = psutil.Process(pid)
+            children = parent.children(recursive=True)
 
-                # Terminate all child processes first
-                for child in children:
-                    try:
-                        child.terminate()
-                        print(f"🔸 Terminated child process {child.pid}")
-                    except psutil.NoSuchProcess:
-                        pass
+            for child in children:
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
 
-                # Terminate the parent process
-                parent.terminate()
-                print(f"🔸 Terminated parent process {pid}")
+            parent.terminate()
+            psutil.wait_procs([parent] + children, timeout=3)
 
-                # Wait for processes to terminate gracefully (max 3 seconds)
-                gone, alive = psutil.wait_procs([parent] + children, timeout=3)
-
-                # Force kill any processes that didn't terminate
-                for p in alive:
-                    try:
-                        p.kill()
-                        print(f"⚠️ Force killed process {p.pid}")
-                    except psutil.NoSuchProcess:
-                        pass
-
-                print(f"✅ Successfully stopped bot '{bot_name}' and {len(children)} child process(es)")
-
-            except psutil.NoSuchProcess:
-                print(f"⚠️ Process {pid} not found, may have already terminated")
+            # Force kill if still alive
+            if parent.is_running():
+                parent.kill()
 
             del self.active_processes[bot_name]
             return {
                 "error": False,
-                "message": f"Bot '{bot_name}' and all child processes stopped successfully",
-                "bot_name": bot_name,
-                "pid": pid
-            }
-
-        except ProcessLookupError:
-            # Process already died, just clean up the dict
-            self.active_processes.pop(bot_name, None)
-            return {
-                "error": False,
-                "message": f"Process for '{bot_name}' was not running. Removed from tracking.",
+                "message": f"Bot '{bot_name}' stopped successfully",
                 "bot_name": bot_name
             }
+
+        except (psutil.NoSuchProcess, ProcessLookupError):
+            self.active_processes.pop(bot_name, None)
+            return {"error": False, "message": "Process already dead. Cleaned up tracking."}
         except Exception as e:
-            return {
-                "error": True,
-                "message": f"Failed to stop bot '{bot_name}'",
-                "detail": str(e),
-                "status_code": 500
-            }
+            return {"error": True, "message": str(e), "status_code": 500}
 
     def get_status(self) -> Dict[str, Any]:
-        """Get the status of the manager and all running bots."""
+        """Get summarized status matching the Docker version structure."""
+        running_bots = []
+        for name, data in self.active_processes.items():
+            try:
+                # Check if still actually alive
+                p = psutil.Process(data["pid"])
+                if p.is_running():
+                    running_bots.append({
+                        "name": name,
+                        "status": p.status(),
+                        "bot_type": data["bot_type"],
+                        "id": str(data["pid"])
+                    })
+            except psutil.NoSuchProcess:
+                continue
+
         return {
             "manager": "running_locally",
             "mode": "subprocess",
-            "running_bots": self.active_processes,
-            "total_bots": len(self.active_processes)
+            "total_bots": len(running_bots),
+            "running_bots": running_bots
         }
 
     def list_bots(self) -> Dict[str, Any]:
-        """List all active bots with their details."""
+        """List active bots with technical details matching Docker's list_bots output."""
         bots = []
-        for bot_name, pid in self.active_processes.items():
-            # Check if process is still alive using psutil
+        for name, data in self.active_processes.items():
             try:
-                process = psutil.Process(pid)
+                process = psutil.Process(data["pid"])
                 is_alive = process.is_running()
-                status = process.status() if is_alive else "dead"
-
-                # Count child processes (e.g., Uvicorn workers)
-                children_count = len(process.children(recursive=True)) if is_alive else 0
 
                 bots.append({
-                    "bot_name": bot_name,
-                    "pid": pid,
-                    "status": status,
-                    "child_processes": children_count
+                    "bot_name": name,
+                    "container_id": str(data["pid"]),  # Using PID as ID for consistency
+                    "status": "running" if is_alive else "dead",
+                    "bot_type": data["bot_type"],
+                    "version": data["version"],
+                    "host_port": data["port"],
+                    "created": "Local Process",
+                    "state": process.status() if is_alive else "unknown"
                 })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 bots.append({
-                    "bot_name": bot_name,
-                    "pid": pid,
+                    "bot_name": name,
+                    "container_id": str(data["pid"]),
                     "status": "dead",
-                    "child_processes": 0
+                    "bot_type": data["bot_type"],
+                    "host_port": data["port"],
+                    "version": data["version"]
                 })
 
         return {
             "total": len(bots),
             "bots": bots
         }
-

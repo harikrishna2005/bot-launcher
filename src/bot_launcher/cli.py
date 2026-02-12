@@ -16,7 +16,7 @@ import os
 # }
 
 
-def start_server():
+def start_launcher():
     """Entry point for poetry run run-manager.
 
     Automatically detects the environment and uses the appropriate execution strategy:
