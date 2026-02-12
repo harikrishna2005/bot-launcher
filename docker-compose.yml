@@ -1,12 +1,24 @@
 services:
   manager:
     image: ghcr.io/harikrishna2005/bot-launcher:develop
+    pull_policy: always
     container_name: bot_launcher_manager
-    # Start the FastAPI server
-    #command: ["uvicorn", "src.manager.app:app", "--host", "0.0.0.0"]
-    command: ["run-manager"]
+    networks:
+      - my_home_network
     ports:
       - "9501:9501"
+    command: ["run-manager"]
+    environment:
+      - APP_INTERNAL_PORT=9501
+      - APP_EXTERNAL_PORT=9501
+      - APP_VERSION=develop
+      - APP_VERSION=develop
+      - APP_DOCKER_NETWORK=my_home_network
+      - PYTHONUNBUFFERED=1
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: always
+networks:
+  my_home_network:
+    external: true
