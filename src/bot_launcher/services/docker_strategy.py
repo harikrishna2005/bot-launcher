@@ -1,9 +1,12 @@
 import json
+import os
 from typing import Dict, Any
 import docker
 from docker.errors import NotFound, APIError
+from shared.utils.port_utils import get_next_available_port
 
 from bot_launcher.services.base_strategy import ExecutionStrategy
+from shared.config import bot_env_settings
 
 
 class DockerExecutionStrategy(ExecutionStrategy):
@@ -20,22 +23,27 @@ class DockerExecutionStrategy(ExecutionStrategy):
 
     def launch_bot(self, bot_name: str, bot_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """Launch a bot as a Docker container matching the Compose configuration."""
-        # Use 'develop' as requested in your compose file
-        version = "develop"
-        image = f"ghcr.io/harikrishna2005/bot-launcher:{version}"
+        # 1. Configuration Setup
+        host = bot_env_settings.host
+        internal_port = bot_env_settings.internal_port
 
-        # Matches the container_name from your compose
+        # Check for provided port, otherwise generate one
+        external_port = external_port = bot_env_settings.external_port or get_next_available_port()
+
+        version = bot_env_settings.version
+        network_name = bot_env_settings.network
+        script_command = f"run-{bot_type}"
+        image = f"ghcr.io/harikrishna2005/bot-launcher:{version}"
         container_name = f"{bot_name}_container"
 
         print(f"🐳 Launching {bot_name} with image {image}")
 
         try:
-            # --- THIS REPLICATES pull_policy: always ---
-            # It forces the Docker daemon to check for a newer version of the tag
+            # Replicates pull_policy: always
             print(f"📥 Pulling latest image: {image}")
             self.client.images.pull(image)
 
-            # Prepare the BOT_CONFIG environment variable as a JSON string
+            # Prepare the BOT_CONFIG (Keep it clean, just trading data)
             bot_config_json = json.dumps({
                 "bot_name": bot_name,
                 "bot_type": bot_type,
@@ -45,26 +53,41 @@ class DockerExecutionStrategy(ExecutionStrategy):
             container = self.client.containers.run(
                 image=image,
                 name=container_name,
+                hostname=container_name,  # Added: self-identification
                 detach=True,
-                # Matches command: ["run-rebalancing"]
-                command=["run-rebalancing"],
-                # Matches ports: ["9501:9501"]
-                ports={'9501/tcp': 9501},
-                # Matches environment: BOT_CONFIG
-                environment={
-                    "BOT_CONFIG": bot_config_json
+                command=[script_command],
+                ports={f'{internal_port}/tcp': external_port},
+                labels={
+                    "app.managed_by": "bot-launcher",
+                    "bot_type": bot_type,
+                    "bot_version": version
                 },
-                # Matches networks: my_home_network
-                network="my_home_network",
-                # Matches restart: always
-                restart_policy={"Name": "always"}
+                environment={
+                    "BOT_CONFIG": bot_config_json,
+                    "APP_HOST": host,
+                    "APP_INTERNAL_PORT": str(internal_port),  # Convert to str
+                    "APP_EXTERNAL_PORT": str(external_port),  # Convert to str
+                    "APP_VERSION": version,
+                    "APP_DOCKER_NETWORK": network_name,
+                    "PYTHONUNBUFFERED": "1"
+                },
+                network=network_name,
+                restart_policy={"Name": "always"},
+                log_config={
+                    "type": "json-file",
+                    "config": {
+                        "max-size": "10m",
+                        "max-file": "3"
+                    }
+                }
             )
 
             return {
                 "success": True,
                 "container_id": container.short_id,
                 "container_name": container.name,
-                "status": container.status
+                "status": container.status,
+                "assigned_port": external_port  # Useful to return this to the API
             }
         except APIError as e:
             print(f"❌ Docker API error: {e}")
