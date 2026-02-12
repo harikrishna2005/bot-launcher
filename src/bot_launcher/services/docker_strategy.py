@@ -23,12 +23,11 @@ class DockerExecutionStrategy(ExecutionStrategy):
 
     def launch_bot(self, bot_name: str, bot_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """Launch a bot as a Docker container matching the Compose configuration."""
-        # 1. Configuration Setup
         host = bot_env_settings.host
         internal_port = bot_env_settings.internal_port
 
-        # Check for provided port, otherwise generate one
-        external_port = external_port = bot_env_settings.external_port or get_next_available_port()
+        # Use provided port or find next available
+        external_port = bot_env_settings.external_port or get_next_available_port()
 
         version = bot_env_settings.version
         network_name = bot_env_settings.network
@@ -36,50 +35,40 @@ class DockerExecutionStrategy(ExecutionStrategy):
         image = f"ghcr.io/harikrishna2005/bot-launcher:{version}"
         container_name = f"{bot_name}_container"
 
-        print(f"🐳 Launching {bot_name} with image {image}")
-
         try:
-            # Replicates pull_policy: always
             print(f"📥 Pulling latest image: {image}")
             self.client.images.pull(image)
 
-            # Prepare the BOT_CONFIG (Keep it clean, just trading data)
             bot_config_json = json.dumps({
                 "bot_name": bot_name,
                 "bot_type": bot_type,
                 "config": config
-            }, indent=2)
+            })
 
             container = self.client.containers.run(
                 image=image,
                 name=container_name,
-                hostname=container_name,  # Added: self-identification
+                hostname=container_name,
                 detach=True,
                 command=[script_command],
                 ports={f'{internal_port}/tcp': external_port},
                 labels={
-                    "app.managed_by": "bot-launcher",
+                    "app.managed_by": "bot-launcher",  # Used for strict filtering
                     "bot_type": bot_type,
                     "bot_version": version
                 },
                 environment={
                     "BOT_CONFIG": bot_config_json,
                     "APP_HOST": host,
-                    "APP_INTERNAL_PORT": str(internal_port),  # Convert to str
-                    "APP_EXTERNAL_PORT": str(external_port),  # Convert to str
+                    "APP_INTERNAL_PORT": str(internal_port),
+                    "APP_EXTERNAL_PORT": str(external_port),
                     "APP_VERSION": version,
                     "APP_DOCKER_NETWORK": network_name,
                     "PYTHONUNBUFFERED": "1"
                 },
                 network=network_name,
                 restart_policy={"Name": "always"},
-                log_config={
-                    "type": "json-file",
-                    "config": {
-                        "max-size": "10m",
-                        "max-file": "3"
-                    }
-                }
+                log_config={"type": "json-file", "config": {"max-size": "10m", "max-file": "3"}}
             )
 
             return {
@@ -87,48 +76,31 @@ class DockerExecutionStrategy(ExecutionStrategy):
                 "container_id": container.short_id,
                 "container_name": container.name,
                 "status": container.status,
-                "assigned_port": external_port  # Useful to return this to the API
+                "assigned_port": external_port
             }
-        except APIError as e:
-            print(f"❌ Docker API error: {e}")
-            return {"success": False, "error": str(e)}
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"❌ Launch error: {e}")
             return {"success": False, "error": str(e)}
 
-    def stop_bot(self, bot_name: str) -> Dict[str, str]:
-        """Stop a running bot container and remove it."""
+    def stop_bot(self, bot_name: str) -> Dict[str, Any]:
+        """Stop and remove a managed bot container."""
+        target_name = f"{bot_name}_container"
         try:
-            container = self.client.containers.get(bot_name)
+            container = self.client.containers.get(target_name)
             container.stop()
-            container.remove()  # Clean up the container after stopping
-
-            return {
-                "error": False,
-                "message": f"Bot '{bot_name}' stopped and removed successfully",
-                "bot_name": bot_name
-            }
-
+            container.remove()
+            return {"error": False, "message": f"Bot '{bot_name}' removed."}
         except NotFound:
-            return {
-                "error": True,
-                "message": f"Bot '{bot_name}' not found",
-                "status_code": 404
-            }
+            return {"error": True, "message": "Bot not found", "status_code": 404}
         except Exception as e:
-            return {
-                "error": True,
-                "message": f"Failed to stop bot '{bot_name}'",
-                "detail": str(e),
-                "status_code": 500
-            }
+            return {"error": True, "detail": str(e), "status_code": 500}
 
     def get_status(self) -> Dict[str, Any]:
-        """Get the status of the manager and all running bots."""
+        """Get summarized status of managed bots."""
         try:
-            containers = self.client.containers.list(all=True)
-            # Filter out the manager container itself
-            bot_containers = [c for c in containers if "manager" not in c.name]
+            # Filter specifically for our bots using labels
+            filters = {"label": "app.managed_by=bot-launcher"}
+            bot_containers = self.client.containers.list(all=True, filters=filters)
 
             return {
                 "manager": "running_in_docker",
@@ -138,48 +110,47 @@ class DockerExecutionStrategy(ExecutionStrategy):
                     {
                         "name": c.name,
                         "status": c.status,
-                        "image": c.image.tags[0] if c.image.tags else "unknown",
+                        "bot_type": c.labels.get("bot_type", "unknown"),
                         "id": c.short_id
                     } for c in bot_containers
                 ]
             }
         except Exception as e:
-            return {
-                "manager": "running_in_docker",
-                "mode": "docker",
-                "error": str(e),
-                "total_bots": 0,
-                "running_bots": []
-            }
+            return {"error": str(e), "total_bots": 0, "running_bots": []}
 
     def list_bots(self) -> Dict[str, Any]:
-        """List all bot containers with their details."""
+        """List detailed info including internal and external ports."""
         try:
-            containers = self.client.containers.list(all=True)
-            # Filter out the manager container itself
-            bot_containers = [c for c in containers if "manager" not in c.name]
+            filters = {"label": "app.managed_by=bot-launcher"}
+            containers = self.client.containers.list(all=True, filters=filters)
 
-            bots = [
-                {
-                    "bot_name": c.name,
+            bots = []
+            for c in containers:
+                # Extract port mappings from container attributes
+                port_data = c.attrs.get('NetworkSettings', {}).get('Ports', {})
+                internal_port = None
+                external_port = None
+
+                if port_data:
+                    # Docker stores ports as '8000/tcp': [{'HostIp': '...', 'HostPort': '59001'}]
+                    for container_port_proto, host_bindings in port_data.items():
+                        if host_bindings:
+                            internal_port = container_port_proto.split('/')[0]
+                            external_port = host_bindings[0].get('HostPort')
+                            break
+
+                bots.append({
+                    "bot_name": c.name.replace("_container", ""),
                     "container_id": c.short_id,
                     "status": c.status,
+                    "bot_type": c.labels.get("bot_type", "unknown"),
+                    "version": c.labels.get("bot_version", "unknown"),
+                    "internal_port": internal_port,
+                    "external_port": external_port,
                     "image": c.image.tags[0] if c.image.tags else "unknown",
-                    "created": c.attrs.get("Created", "N/A"),
-                    "state": c.attrs.get("State", {}).get("Status", "unknown")
-                } for c in bot_containers
-            ]
+                    "created": c.attrs.get("Created", "N/A")
+                })
 
-            return {
-                "total": len(bots),
-                "bots": bots
-            }
+            return {"total": len(bots), "bots": bots}
         except Exception as e:
-            return {
-                "error": True,
-                "message": "Failed to list bots",
-                "detail": str(e),
-                "total": 0,
-                "bots": []
-            }
-
+            return {"error": True, "detail": str(e), "bots": []}
