@@ -21,7 +21,8 @@ dependencies = [
     "asyncpg (>=0.31.0,<0.32.0)",
     "aiosqlite (>=0.22.1,<0.23.0)",
     "psutil (>=5.9.0,<7.0.0)",
-    "pydantic-settings (>=2.12.0,<3.0.0)"
+    "pydantic-settings (>=2.12.0,<3.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
 ]
 
 
@@ -46,17 +47,25 @@ packages = [
 
 
 
-
-# In Poetry 2.0, optional dependencies for extras go here
-[tool.poetry.dependencies]
-pytest = { version = "^7.4.0", optional = true }
-pytest-asyncio = { version = "^0.21.0", optional = true }
-pytest-cov = { version = "^4.1.0", optional = true }
-
-
-[tool.poetry.extras]
-test = ["pytest", "pytest-asyncio", "pytest-cov"]
+#
+## In Poetry 2.0, optional dependencies for extras go here
+#[tool.poetry.dependencies]
+#pytest = { version = "^7.4.0", optional = true }
+#pytest-asyncio = { version = "^0.21.0", optional = true }
+#pytest-cov = { version = "^4.1.0", optional = true }
+#
+#
+#[tool.poetry.extras]
+#test = ["pytest", "pytest-asyncio", "pytest-cov"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "pytest-asyncio (>=0.21.0,<0.22.0)",
+    "pytest-cov (>=4.1.0,<5.0.0)"
+]

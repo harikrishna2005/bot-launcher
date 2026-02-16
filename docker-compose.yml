@@ -12,7 +12,6 @@ services:
       - APP_INTERNAL_PORT=9501
       - APP_EXTERNAL_PORT=9501
       - APP_VERSION=develop
-      - APP_VERSION=develop
       - APP_DOCKER_NETWORK=my_home_network
       - PYTHONUNBUFFERED=1
 

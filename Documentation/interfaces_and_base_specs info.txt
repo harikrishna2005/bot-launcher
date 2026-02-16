@@ -1,0 +1,4 @@
+File Name	Responsibility	Class Name Example
+specifications.py	Abstract logic for the Specification Pattern.	ISystemSpecification, ITradeSpecification
+interfaces.py	Abstract blueprints for external services (Exchange, DB).	IExchangeClient, IMessageBus
+models.py	Data structures (Pydantic) used across layers.	TradeCandidate, PortfolioState
