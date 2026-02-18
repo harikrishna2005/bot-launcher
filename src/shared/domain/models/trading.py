@@ -19,3 +19,9 @@ class TradeCandidate(BaseModel):
     side: str
     amount: float
     price: float
+
+class Asset(BaseModel):
+    """An idealized trade calculated by the Rebalancer."""
+    symbol: str
+    amount: float
+    price: float

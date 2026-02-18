@@ -36,10 +36,10 @@ class MinimumOrderRule(ITradeSpecification):
         # Formula: Total Value = Quantity * Price
         trade_value = trade.amount * trade.price
 
-        if trade_value < rules.min_notional:
+        if trade_value < rules.min_cost:
             self._error = (
                 f"Trade for {trade.symbol} rejected: Value ${trade_value:.2f} "
-                f"is below the minimum required ${rules.min_notional:.2f}."
+                f"is below the minimum required ${rules.min_cost:.2f}."
             )
             return False
 

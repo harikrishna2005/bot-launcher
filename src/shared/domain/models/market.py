@@ -9,9 +9,20 @@ market that the bot must obey, such as order sizing and precision limits.
 
 """
 
+"""
+Trading Term        Grocery Store Equivalent        Example (BTC/USDT)
+-----------------------------------------------------------------------
+Quantity (Amount)	Number of Apples	            0.5 BTC
+Price	            Price per Apple	                $50,000
+Cost (Notional)	    Total bill at the register	    $25,000
+"""
+
 
 from pydantic import BaseModel, model_validator
 from typing import Optional
+from decimal import Decimal
+from typing import Tuple
+
 from shared.domain.models.common.symbol import Symbol
 from shared.utils.precision_utils import (
     decimal_to_precision,
@@ -30,8 +41,8 @@ class MarketRules(BaseModel):
 
         Attributes:
             symbol: The trading pair (e.g., 'BTC/USDT').
-            min_notional: Minimum total cost of the order in quote currency ($).
-            min_amount: Smallest quantity of the base asset (e.g., 0.001 BTC).
+            min_cost: Minimum total cost of the order in quote currency ($).
+            min_qty_amt: Smallest quantity of the base asset (e.g., 0.001 BTC).
             price_precision: Max decimal places allowed for the Price.
             amount_precision: Max decimal places allowed for the Quantity/Amount.
         Explanation:
@@ -81,13 +92,13 @@ class MarketRules(BaseModel):
                 Tick Size (Increment): This refers to the smallest allowed movement. For example, a tick size of 0.05 means you can have 50000.10 or 50000.15, but not 50000.12.
         """
     symbol: Symbol
-    min_notional: float     #  Total value of trade
-    min_amount: float       #  Quantity of asset
+    min_cost: float     #  min_notional or min_cost Total value of trade - Minimum cost in quote currency (e.g., $10)
+    min_qty_amt: float       #  Quantity of asset   - Minimum amount of base asset (e.g., 0.001 BTC)
     price_precision: float    #  Decimal places for price Example: 2 means you can have $50,000.12 but not $50,000.123       Tick Size (price)
-    amount_precision: float   #  Decimal places for quantity Example: 4 means you can have 0.1234 BTC but not 0.123456 BTC   Step Size (amount)
+    qty_amt_precision: float   #  Decimal places for quantity Example: 4 means you can have 0.1234 BTC but not 0.123456 BTC   Step Size (amount)
     # Pre-calculated modes for high-speed access
     price_mode: Optional[int] = None
-    amount_mode: Optional[int] = None
+    qty_amt_mode: Optional[int] = None
 
 
     @model_validator(mode='after')
@@ -102,15 +113,15 @@ class MarketRules(BaseModel):
             self.price_mode = TICK_SIZE
 
         # 2. Amount Mode Detection
-        if self.amount_precision >= 1.0 or self.amount_precision == 0:
-            self.amount_mode = DECIMAL_PLACES
-            self.amount_precision = int(self.amount_precision)
+        if self.qty_amt_precision >= 1.0 or self.qty_amt_precision == 0:
+            self.qty_amt_mode = DECIMAL_PLACES
+            self.qty_amt_precision = int(self.qty_amt_precision)
         else:
-            self.amount_mode = TICK_SIZE
+            self.qty_amt_mode = TICK_SIZE
 
         return self
 
-    def amount_to_precision(self, amount: float) -> str:
+    def qty_amt_to_precision(self, amount: float) -> str:
         """
         Returns the STRING representation (Exact CCXT style).
         Use this for the final API call.
@@ -119,8 +130,8 @@ class MarketRules(BaseModel):
         return decimal_to_precision(
             amount,
             rounding_mode=TRUNCATE,
-            precision=self.amount_precision,
-            counting_mode=self.amount_mode
+            precision=self.qty_amt_precision,
+            counting_mode=self.qty_amt_mode
         )
 
     def price_to_precision(self, price: float) -> str:
@@ -138,10 +149,48 @@ class MarketRules(BaseModel):
 
     # --- Performance Helpers for Rebalancer Core ---
 
-    def clean_amount(self, amount: float) -> float:
+    def clean_qty_amt(self, amount: float) -> float:
         """Helper to get a float version for internal logic/comparisons."""
-        return float(self.amount_to_precision(amount))
+        return float(self.qty_amt_to_precision(amount))
 
     def clean_price(self, price: float) -> float:
         """Helper to get a float version for internal logic/comparisons."""
         return float(self.price_to_precision(price))
+
+    def is_valid_trade(self, qty_amt: float, price: float) -> Tuple[bool, str]:
+        """
+        Validates if the proposed trade satisfies exchange minimums.
+
+        Args:
+            qty_amt: The raw quantity/amount of the base asset.
+            price: The raw price of the asset.
+
+        Returns:
+            (is_valid, error_message): Tuple where bool is True if valid.
+        """
+        # 1. Normalize values to exchange precision (The 'Clean' versions)
+        # This mirrors exactly what the exchange will process.
+        final_qty = self.clean_qty_amt(qty_amt)
+        final_price = self.clean_price(price)
+
+        # 2. Calculate Total Cost (Notional) using Decimal for 100% accuracy.
+        # Initialize Decimal from strings to avoid float artifacts.
+        d_qty = Decimal(str(final_qty))
+        d_price = Decimal(str(final_price))
+        total_cost = float(d_qty * d_price)
+
+        # 3. Rule Check: Minimum Quantity (Base Asset)
+        if final_qty < self.min_qty_amt:
+            return False, (
+                f"Trade rejected: {self.symbol} quantity {final_qty} "
+                f"is below minimum {self.min_qty_amt}."
+            )
+
+        # 4. Rule Check: Minimum Cost (Quote Currency/Notional)
+        if total_cost < self.min_cost:
+            return False, (
+                f"Trade rejected: {self.symbol} total cost ${total_cost:.4f} "
+                f"is below minimum ${self.min_cost:.2f}."
+            )
+
+        return True, ""
